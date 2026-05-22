@@ -24,7 +24,7 @@ export default function HomeScreen() {
       <View style={styles.content}>
         {/* Header */}
         <Text style={[styles.greeting, { color: colors.secondaryText }]}>
-          Baby Birth Counter
+          Firstprints
         </Text>
 
         {/* Counter */}

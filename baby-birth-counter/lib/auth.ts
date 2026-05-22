@@ -3,6 +3,9 @@ import {
   OAuthProvider,
   signInWithCredential,
   signOut as firebaseSignOut,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  sendPasswordResetEmail,
 } from "firebase/auth";
 import * as Google from "expo-auth-session/providers/google";
 import * as AppleAuthentication from "expo-apple-authentication";
@@ -90,6 +93,37 @@ export async function handleAppleSignIn(): Promise<boolean> {
     }
     throw error;
   }
+}
+
+/**
+ * Create a new account with email and password.
+ */
+export async function handleEmailSignUp(email: string, password: string): Promise<void> {
+  const result = await createUserWithEmailAndPassword(auth, email, password);
+  await ensureUserDoc(result.user.uid, {
+    displayName: email.split("@")[0],
+    email,
+    provider: "email",
+  });
+}
+
+/**
+ * Sign in with an existing email and password account.
+ */
+export async function handleEmailSignIn(email: string, password: string): Promise<void> {
+  const result = await signInWithEmailAndPassword(auth, email, password);
+  await ensureUserDoc(result.user.uid, {
+    displayName: result.user.displayName || email.split("@")[0],
+    email,
+    provider: "email",
+  });
+}
+
+/**
+ * Send a password reset email.
+ */
+export async function handlePasswordReset(email: string): Promise<void> {
+  await sendPasswordResetEmail(auth, email);
 }
 
 /**
