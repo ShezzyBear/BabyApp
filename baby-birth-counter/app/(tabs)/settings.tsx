@@ -8,7 +8,7 @@ import {
 } from "react-native";
 import { useTheme } from "../../hooks/useTheme";
 import { useAuth } from "../../hooks/useAuth";
-import { signOut } from "../../lib/auth";
+import { signOut, handleDeleteAccount } from "../../lib/auth";
 import { ThemeMode } from "../../lib/theme";
 import ConfirmDialog from "../../components/ConfirmDialog";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -24,10 +24,26 @@ export default function SettingsScreen() {
   const { user } = useAuth();
   const colors = theme.colors;
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showReauthNotice, setShowReauthNotice] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const handleSignOut = async () => {
     setShowSignOutConfirm(false);
     await signOut();
+  };
+
+  const handleDeleteConfirmed = async () => {
+    setShowDeleteConfirm(false);
+    setDeleting(true);
+    try {
+      await handleDeleteAccount();
+    } catch (err: any) {
+      setDeleting(false);
+      if (err?.code === "auth/requires-recent-login") {
+        setShowReauthNotice(true);
+      }
+    }
   };
 
   return (
@@ -163,6 +179,18 @@ export default function SettingsScreen() {
             Sign Out
           </Text>
         </TouchableOpacity>
+
+        {/* Delete Account */}
+        <TouchableOpacity
+          style={styles.deleteAccountButton}
+          onPress={() => setShowDeleteConfirm(true)}
+          disabled={deleting}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.deleteAccountText}>
+            {deleting ? "Deleting account…" : "Delete Account"}
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {/* Sign Out Confirmation */}
@@ -174,6 +202,29 @@ export default function SettingsScreen() {
         destructive
         onConfirm={handleSignOut}
         onCancel={() => setShowSignOutConfirm(false)}
+      />
+
+      {/* Delete Account Confirmation */}
+      <ConfirmDialog
+        visible={showDeleteConfirm}
+        title="Delete Account?"
+        message="This will permanently delete your account and all birth records. This cannot be undone."
+        confirmLabel="Delete Account"
+        destructive
+        onConfirm={handleDeleteConfirmed}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
+
+      {/* Re-authentication notice */}
+      <ConfirmDialog
+        visible={showReauthNotice}
+        title="Sign In Again to Continue"
+        message="For security, deleting your account requires a recent sign-in. Please sign out and sign back in, then try again."
+        confirmLabel="Sign Out"
+        cancelLabel="Cancel"
+        destructive
+        onConfirm={async () => { setShowReauthNotice(false); await signOut(); }}
+        onCancel={() => setShowReauthNotice(false)}
       />
     </SafeAreaView>
   );
@@ -277,5 +328,14 @@ const styles = StyleSheet.create({
   signOutText: {
     fontSize: 16,
     fontWeight: "600",
+  },
+  deleteAccountButton: {
+    alignItems: "center",
+    paddingVertical: 14,
+  },
+  deleteAccountText: {
+    fontSize: 14,
+    color: "#999999",
+    textDecorationLine: "underline",
   },
 });

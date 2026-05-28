@@ -11,7 +11,7 @@ import * as Google from "expo-auth-session/providers/google";
 import * as AppleAuthentication from "expo-apple-authentication";
 import * as Crypto from "expo-crypto";
 import { auth } from "./firebase";
-import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, getDoc, getDocs, deleteDoc, collection, serverTimestamp } from "firebase/firestore";
 import { db } from "./firebase";
 
 // ============================================================
@@ -124,6 +124,26 @@ export async function handleEmailSignIn(email: string, password: string): Promis
  */
 export async function handlePasswordReset(email: string): Promise<void> {
   await sendPasswordResetEmail(auth, email);
+}
+
+/**
+ * Delete the current user's account and all associated data.
+ * Throws auth/requires-recent-login if the session is too old.
+ */
+export async function handleDeleteAccount(): Promise<void> {
+  const user = auth.currentUser;
+  if (!user) throw new Error("No authenticated user");
+
+  // Delete all birth records first (Firestore doesn't cascade)
+  const birthsCol = collection(db, "users", user.uid, "births");
+  const birthsSnap = await getDocs(birthsCol);
+  await Promise.all(birthsSnap.docs.map((d) => deleteDoc(d.ref)));
+
+  // Delete the user profile document
+  await deleteDoc(doc(db, "users", user.uid));
+
+  // Delete the Firebase Auth account
+  await user.delete();
 }
 
 /**
