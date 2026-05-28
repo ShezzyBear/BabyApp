@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Image,
+  Alert,
 } from "react-native";
 import { useTheme } from "../../hooks/useTheme";
 import { useAuth } from "../../hooks/useAuth";
@@ -38,6 +39,11 @@ export default function SettingsScreen() {
     setDeleting(true);
     try {
       await handleDeleteAccount();
+      Alert.alert(
+        "Account Deleted",
+        "Your account and all associated data have been permanently deleted.",
+        [{ text: "OK" }]
+      );
     } catch (err: any) {
       setDeleting(false);
       if (err?.code === "auth/requires-recent-login") {
